@@ -1,0 +1,75 @@
+version: '3'
+networks:
+    st-case:
+        driver: bridge
+services:
+    nginx:
+        image: nginx:alpine
+        tty: true
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
+        depends_on:
+            - app
+        networks:
+            - st-case
+    app:
+        build: ./docker/app
+        volumes:
+            - ./:/var/www/:cached
+        working_dir: /var/www
+        depends_on:
+            - db
+            # - redis
+        networks:
+            - st-case
+    # redis:
+    #     image: redis:latest
+    #     volumes:
+    #         - ./docker/redis/data:/data
+    #     ports:
+    #         - 6379:6379
+    #     command: redis-server --appendonly yes
+    #     networks:
+    #         - weblocal
+    db:
+        # platform: linux/x86_64
+        # image: mysql:8.0
+        build:
+            context: ./docker/mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: stcase
+            MYSQL_USER: stcase
+            MYSQL_PASSWORD: password
+        ports:
+            - "3308:3306"
+        volumes:
+            - ./docker/mysql/db-data:/var/lib/mysql:cached
+            - ./docker/mysql/mysql_confd:/etc/mysql/conf.d:cached
+        networks:
+            - st-case
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        environment:
+            UPLOAD_LIMIT: 300M
+        ports:
+          - "8080:80"
+        volumes:
+          - /sessions
+        depends_on:
+          - db
+        networks:
+            - st-case
+    mailhog:
+        image: mailhog/mailhog
+        ports:
+            - "1025:1025"
+            - "8025:8025"
+        networks:
+            - st-case
+volumes:
+    db-data:

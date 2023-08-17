@@ -1,0 +1,4 @@
+mysql/db-data/*
+!mysql/db-data/.gitignore
+redis/data
+.DS_Store
